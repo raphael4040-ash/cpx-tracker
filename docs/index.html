@@ -3,478 +3,88 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CPX 기록판</title>
-<meta name="color-scheme" content="light dark" />
-<link rel="stylesheet" href="style.css" />
-<script>
-  // 저장된 테마를 첫 페인트 전에 입힌다 — 안 그러면 다크모드에서 흰 화면이 한 번 번쩍인다.
-  try {
-    const t = localStorage.getItem("cpx-theme");
-    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
-  } catch {}
-</script>
+<title>CPX 기록판 — 주소가 바뀌었습니다</title>
+<!-- 옛 주소로 들어온 사람을 새 주소로 넘긴다. 이미 공유된 링크가 죽지 않게 하려는 것이다.
+     canonical 은 검색엔진에도 새 주소를 알려준다. -->
+<link rel="canonical" href="https://cpx-practice.github.io/" />
+<meta http-equiv="refresh" content="3; url=https://cpx-practice.github.io/" />
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f6f5f2;
+    --panel: #ffffff;
+    --border: #e2ddd3;
+    --text: #2b2621;
+    --muted: #8a8175;
+    --accent: #b5563b;
+    --on-accent: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #1a1815;
+      --panel: #23201c;
+      --border: #3a352d;
+      --text: #ece6dc;
+      --muted: #9b9285;
+      --accent: #d4785f;
+      --on-accent: #1a1815;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+    line-height: 1.7;
+    word-break: keep-all;
+  }
+  .card {
+    max-width: 26rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 30px 30px;
+  }
+  h1 { font-size: 1.15rem; margin: 0 0 10px; }
+  p { margin: 0 0 14px; font-size: 0.92rem; color: var(--muted); }
+  .go {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--on-accent);
+    text-decoration: none;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+  }
+  .go:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .addr {
+    display: block;
+    margin-top: 14px;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+    word-break: break-all;
+  }
+</style>
 </head>
 <body>
-  <header class="topbar">
-    <span class="brand">CPX 기록판</span>
-    <nav id="navAuthed" class="hidden">
-      <span class="who" id="whoName"></span>
-      <a href="#" id="btnLogout">로그아웃</a>
-    </nav>
-    <button id="btnTheme" class="theme-toggle" type="button" aria-label="화면 밝기 전환"></button>
-  </header>
-
-  <main class="container">
-
-    <!-- 로그인/회원가입 -->
-    <section id="authSection" class="hidden">
-      <div class="auth-card">
-        <div class="tabs">
-          <button id="tabLogin" class="tab active">로그인</button>
-          <button id="tabRegister" class="tab">회원가입</button>
-        </div>
-
-        <form id="loginForm" class="auth-form">
-          <label>이메일<input type="email" id="loginEmail" required /></label>
-          <label>비밀번호<input type="password" id="loginPassword" required /></label>
-          <button type="submit" class="btn primary">로그인</button>
-          <p class="err" id="loginErr"></p>
-        </form>
-
-        <form id="registerForm" class="auth-form hidden">
-          <label>닉네임<input type="text" id="registerNickname" required /></label>
-          <label>이메일<input type="email" id="registerEmail" required /></label>
-          <label>비밀번호 (6자 이상)<input type="password" id="registerPassword" required minlength="6" /></label>
-
-          <div class="consent">
-            <p class="consent-title">저장되는 내용</p>
-            <ul>
-              <li>항상 저장: 케이스 주제, 점수(총점·병력청취·신체진찰·PPI), 등급, 총평, 채점 결과 전문</li>
-              <li>선택 저장: <strong>문진 대화 전문</strong> — 환자와 주고받은 내용을 그대로 보관해 나중에 복기할 수 있습니다</li>
-              <li>기록은 본인 계정에서만 보이며, 계정을 삭제하면 함께 지워집니다</li>
-            </ul>
-            <label class="check">
-              <input type="checkbox" id="registerConsent" checked />
-              <span>문진 대화 전문도 함께 저장합니다 (나중에 설정에서 변경 가능)</span>
-            </label>
-          </div>
-
-          <button type="submit" class="btn primary">가입하기</button>
-          <p class="err" id="registerErr"></p>
-        </form>
-      </div>
-    </section>
-
-    <!-- 승인 대기 -->
-    <section id="pendingSection" class="hidden">
-      <div class="panel">
-        <h2>관리자 승인 대기 중</h2>
-        <p class="hint">
-          이 기록판은 관리자 승인을 받은 계정만 쓸 수 있습니다.
-          승인이 끝나면 다시 로그인할 필요 없이 바로 이용할 수 있습니다.
-        </p>
-        <p class="hint" id="pendingWho"></p>
-      </div>
-    </section>
-
-    <!-- 대시보드 -->
-    <section id="dashboardSection" class="hidden">
-
-      <nav class="subnav">
-        <button class="subtab active" data-view="records">내 기록</button>
-        <button class="subtab" data-view="analysis">분석</button>
-        <button class="subtab" data-view="claude">Claude</button>
-        <button class="subtab" data-view="report">오류 제보</button>
-        <button class="subtab" data-view="pair">이용 방법</button>
-        <button class="subtab" data-view="settings">설정</button>
-        <button class="subtab hidden" data-view="admin" id="tabAdmin">관리자</button>
-      </nav>
-
-      <!-- ===== 기록 ===== -->
-      <div id="viewRecords">
-        <div class="panel">
-          <div class="panel-header">
-            <h2>내 기록 (<span id="recordCount">0</span>건)</h2>
-            <span class="avg" id="avgScore"></span>
-          </div>
-
-          <div class="filters" id="filters">
-            <input type="search" id="fltQuery" class="flt-search" placeholder="주제·총평 검색" aria-label="주제와 총평 검색" />
-            <select id="fltTopic" aria-label="주제로 거르기"><option value="">모든 주제</option></select>
-            <select id="fltPeriod" aria-label="기간으로 거르기">
-              <option value="0">전체 기간</option>
-              <option value="7">최근 7일</option>
-              <option value="30">최근 30일</option>
-              <option value="90">최근 90일</option>
-            </select>
-            <select id="fltSort" aria-label="정렬 기준">
-              <option value="new">최신순</option>
-              <option value="old">오래된순</option>
-              <option value="high">총점 높은순</option>
-              <option value="low">총점 낮은순</option>
-            </select>
-            <button type="button" class="btn ghost small hidden" id="fltReset">초기화</button>
-          </div>
-
-          <p class="empty hidden" id="emptyMsg">아직 기록이 없습니다. <b>이용 방법</b> 탭에서 연결해두면 연습이 끝날 때마다 자동으로 쌓입니다.</p>
-          <p class="empty hidden" id="noMatchMsg">조건에 맞는 기록이 없습니다.</p>
-          <div class="table-wrap">
-            <table id="recordTable" class="hidden">
-              <thead>
-                <tr><th>날짜</th><th>주제</th><th>총점</th><th>병력</th><th>진찰</th><th>PPI</th><th>총평</th><th></th></tr>
-              </thead>
-              <tbody id="recordBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- ===== 분석 ===== -->
-      <div id="viewAnalysis" class="hidden">
-        <p class="empty panel hidden" id="analysisEmpty">
-          채점된 기록이 아직 없습니다. <code>/cpx:start</code> 로 한 케이스를 끝내고 <code>평가</code>까지 받으면 여기에 쌓입니다.
-        </p>
-
-        <div id="analysisBody" class="hidden">
-          <div class="panel">
-            <h2>영역별 성취율</h2>
-            <p class="hint" id="sectionNote"></p>
-            <div class="sbars" id="sectionBars"></div>
-          </div>
-
-          <div class="panel">
-            <h2>케이스별 점수</h2>
-            <p class="hint">
-              국시원 48개 임상표현 + 기본진료술기 3개. 해본 케이스를 누르면 회차별 점수가 펼쳐지고,
-              회차마다 그때의 면담 내용을 볼 수 있습니다. 병력 / 진찰 / PPI 는 그 케이스의 영역별 평균입니다.
-            </p>
-
-            <div class="filters">
-              <input type="search" id="caseQuery" class="flt-search" list="caseNames"
-                     placeholder="케이스 검색" aria-label="케이스 이름 검색" autocomplete="off" />
-              <datalist id="caseNames"></datalist>
-              <select id="caseSort" aria-label="케이스 정렬 기준"></select>
-              <select id="caseScope" aria-label="보여줄 케이스 범위">
-                <option value="all">전체</option>
-                <option value="done">해본 것만</option>
-                <option value="undone">안 해본 것만</option>
-              </select>
-              <button type="button" class="btn ghost small hidden" id="caseReset">초기화</button>
-            </div>
-
-            <p class="empty hidden" id="caseEmpty"></p>
-            <div id="caseTableWrap">
-              <table id="caseTable">
-                <thead>
-                  <tr>
-                    <th>케이스</th><th class="num">횟수</th><th class="num">평균</th><th class="num">최고</th>
-                    <th class="num">최근</th><th class="num sect">병력</th><th class="num sect">진찰</th><th class="num sect">PPI</th>
-                  </tr>
-                </thead>
-                <tbody id="caseBody"></tbody>
-              </table>
-            </div>
-            <p class="hint warn-inline hidden" id="coverUnmatched"></p>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- ===== Claude ===== -->
-      <div id="viewClaude" class="hidden">
-        <div class="panel">
-          <h2>연습 시작</h2>
-          <p class="hint">
-            아래 버튼을 누르면 Claude 앱이 열리고 <code>/cpx:start</code> 가 복사됩니다.
-            앱 안에서 붙여넣기(Ctrl+V)만 하면 바로 면담이 시작됩니다.
-          </p>
-          <div class="launch">
-            <button type="button" class="btn primary" id="btnLaunchClaude">Claude 열고 명령 복사</button>
-            <span class="hint" id="launchHint">앱이 설치돼 있어야 열립니다.</span>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h2>면담은 이렇게 흘러갑니다</h2>
-          <ol class="steps">
-            <li><b>문진</b> — 환자에게 묻습니다. 사전 안내문은 없으니 직접 알아내야 합니다.</li>
-            <li><code>진찰</code> — 신체진찰로 넘어갑니다. 활력징후부터 나옵니다.</li>
-            <li><code>평가</code> — 채점표대로 점수와 개선점이 나옵니다.</li>
-          </ol>
-          <p class="hint" style="margin-bottom:0">
-            평가가 끝나면 기록이 자동으로 여기 쌓입니다. 처음이라 연결이 안 돼 있으면
-            <b>이용 방법</b> 탭을 먼저 보세요.
-          </p>
-        </div>
-      </div>
-
-      <!-- ===== 오류 제보 ===== -->
-      <div id="viewReport" class="hidden">
-        <div class="panel">
-          <h2>오류 제보</h2>
-          <p class="hint">
-            잘못 동작하거나 이상한 점을 적어주세요. 무엇을 하다가 그랬는지 함께 적어주시면 찾기 쉽습니다.
-          </p>
-          <form id="reportForm" class="report-form">
-            <label>
-              <textarea id="reportText" rows="5" maxlength="2000" required
-                placeholder="예: 기록을 열었는데 문진 전사가 계속 불러오는 중에서 안 넘어갑니다"></textarea>
-            </label>
-            <div class="report-attach">
-              <label class="btn small attach-btn" for="reportImage">이미지 첨부</label>
-              <input type="file" id="reportImage" accept="image/*" hidden />
-              <span class="hint" id="reportImageHint">화면을 복사해 위 칸에 붙여넣어도 됩니다 (Ctrl+V)</span>
-            </div>
-            <div class="attach-preview hidden" id="reportImagePreview">
-              <img id="reportImageThumb" alt="첨부한 이미지 미리보기" />
-              <div class="attach-meta">
-                <span id="reportImageInfo"></span>
-                <button type="button" class="btn ghost small" id="reportImageClear">빼기</button>
-              </div>
-            </div>
-
-            <div class="report-foot">
-              <span class="hint" id="reportCount">0 / 2000</span>
-              <button type="submit" class="btn primary" id="reportSubmit">보내기</button>
-            </div>
-            <p class="err" id="reportErr"></p>
-            <p class="ok hidden" id="reportSent">보냈습니다. 확인하고 반영하겠습니다.</p>
-          </form>
-          <p class="hint report-note">
-            내용과 함께 닉네임·이메일, 보고 있던 화면, 브라우저 종류가 같이 전송됩니다.
-            연락과 재현에만 씁니다. 이미지는 보내기 전에 브라우저에서 줄여 저장합니다.
-          </p>
-        </div>
-
-        <div class="panel">
-          <h2>내가 보낸 제보 (<span id="myReportCount">0</span>건)</h2>
-          <p class="empty hidden" id="myReportEmpty">아직 보낸 제보가 없습니다.</p>
-          <ul class="report-list" id="myReportList"></ul>
-        </div>
-      </div>
-
-      <!-- ===== 이용 방법 ===== -->
-      <div id="viewPair" class="hidden">
-        <div class="panel">
-          <div class="panel-header">
-            <h2>이용 방법</h2>
-            <div class="seg" role="group" aria-label="운영체제 선택">
-              <button type="button" class="seg-btn" id="osWin" aria-pressed="true">Windows</button>
-              <button type="button" class="seg-btn" id="osMac" aria-pressed="false">Mac</button>
-            </div>
-          </div>
-          <p class="hint">
-            아무것도 깔려 있지 않은 컴퓨터 기준입니다. 순서대로 하면 15분쯤 걸리고, 연결은 한 번만 하면 됩니다.
-          </p>
-
-          <p class="warn">
-            <b>Claude 유료 플랜(Pro 이상)이 필요합니다.</b> 무료 플랜 계정으로는 앱이 깔려도 면담 명령이
-            나타나지 않습니다. 설치 전에 플랜부터 확인하세요.
-            <span class="win-only">Windows 10(1809) 이상이어야 합니다.</span>
-            <span class="mac-only">macOS 13 이상이어야 합니다.</span>
-          </p>
-
-          <ol class="steps">
-            <li>
-              <b>Claude 앱 설치</b> — 터미널을 쓰지 않는 방법입니다.
-              <span class="win-only">
-                <a href="https://claude.com/download" target="_blank" rel="noopener">claude.com/download</a>
-                에서 Windows용을 받아 설치하고, 앱을 열어 Claude 계정으로 로그인합니다.
-              </span>
-              <span class="mac-only">
-                <a href="https://claude.ai/api/desktop/darwin/universal/dmg/latest/redirect" target="_blank" rel="noopener">Mac용 .dmg</a>
-                를 받아 Claude를 응용 프로그램 폴더로 끌어다 놓고, 앱을 열어 Claude 계정으로 로그인합니다.
-              </span>
-              <details class="alt">
-                <summary>터미널이 편하다면</summary>
-                <pre class="code win-only">irm https://claude.ai/install.ps1 | iex</pre>
-                <pre class="code mac-only">curl -fsSL https://claude.ai/install.sh | bash</pre>
-                <p class="hint">설치 후 <code>claude</code> 를 입력하면 시작됩니다. 나머지 단계는 똑같습니다.</p>
-              </details>
-            </li>
-
-            <li>
-              <b>CPX 플러그인 설치</b> — Claude 안에서 아래 두 줄을 차례로 입력합니다.
-              <pre class="code" id="installCmd">/plugin marketplace add raphael4040-ash/cpx-marketplace</pre>
-              <pre class="code">/plugin install cpx@cpx-marketplace</pre>
-              <p class="hint">
-                설치 후 <code>/reload-plugins 를 실행하세요</code> 라는 안내가 나오면 그것도 입력합니다.
-                안 나오면 넘어가도 됩니다.
-              </p>
-            </li>
-
-            <li>
-              <b>연결 코드 발급</b>
-              <div class="pair-box">
-                <button class="btn primary" id="btnMakeToken">연결 코드 만들기</button>
-                <textarea id="pairToken" class="token" rows="4" readonly placeholder="버튼을 누르면 여기에 코드가 표시됩니다"></textarea>
-                <div class="pair-actions hidden" id="pairActions">
-                  <button class="btn small" id="btnCopyToken">복사</button>
-                  <span class="copied hidden" id="copiedMsg">복사됨</span>
-                </div>
-              </div>
-              <p class="warn">
-                이 코드는 <b>비밀번호와 같은 힘을 가집니다.</b> 본인 컴퓨터에만 붙여넣고, 남에게 보내거나
-                채팅·깃허브에 올리지 마세요. 유출된 것 같으면 <b>설정 → 연결 해제</b>로 즉시 무효화하세요.
-              </p>
-            </li>
-
-            <li>
-              <b>Claude에 붙여넣기</b>
-              <pre class="code">/cpx:pair &lt;위에서 복사한 코드&gt;</pre>
-            </li>
-
-            <li>
-              <b>연습 시작</b> — <code>/cpx:start</code> → 문진 → <code>진찰</code> → <code>평가</code>.
-              평가가 끝나면 자동으로 여기에 기록됩니다. 주제를 고르려면
-              <code>/cpx:start 가슴통증</code> 처럼 뒤에 붙이면 됩니다.
-            </li>
-          </ol>
-        </div>
-
-        <div class="panel">
-          <h2>막혔을 때</h2>
-
-          <details class="faq">
-            <summary><code>/cpx:start</code> 를 쳤는데 아무 일도 안 일어납니다</summary>
-            <div class="faq-a">
-              <p>플러그인이 아직 안 붙은 상태입니다. <code>/reload-plugins</code> 를 입력해 보고, 그래도 안 되면 앱을 완전히 껐다 켜세요.</p>
-              <p>그래도 안 되면 2단계의 두 줄을 다시 실행하세요. 이미 설치돼 있어도 다시 해서 문제되지 않습니다.</p>
-            </div>
-          </details>
-
-          <details class="faq">
-            <summary>로그인은 되는데 명령어가 하나도 안 보입니다</summary>
-            <div class="faq-a">
-              <p>무료 플랜 계정일 가능성이 큽니다. Claude Code는 Pro 이상에서만 열립니다.</p>
-            </div>
-          </details>
-
-          <details class="faq">
-            <summary>면담은 끝났는데 기록이 안 올라옵니다</summary>
-            <div class="faq-a">
-              <p>연결이 안 됐거나 코드가 무효화된 경우가 대부분입니다. 위에서 연결 코드를 새로 만들어 <code>/cpx:pair</code> 를 다시 실행하세요.</p>
-              <p>승인제가 켜져 있는데 아직 승인 전이어도 올라가지 않습니다.</p>
-            </div>
-          </details>
-
-          <details class="faq">
-            <summary><span class="win-only">PowerShell</span><span class="mac-only">터미널</span>에서 설치 명령이 오류가 납니다</summary>
-            <div class="faq-a">
-              <p class="win-only"><code>'irm' is not recognized</code> 가 나오면 PowerShell이 아니라 CMD 창입니다. 프롬프트가 <code>PS C:\</code> 로 시작해야 PowerShell입니다.</p>
-              <p>터미널은 필수가 아닙니다. 1단계의 앱 설치로 하면 이 문제를 안 만납니다.</p>
-            </div>
-          </details>
-
-          <details class="faq">
-            <summary>뭔가 이상한데 원인을 모르겠습니다</summary>
-            <div class="faq-a">
-              <p><b>오류 제보</b> 탭에 적어 보내주세요. 화면을 캡처해 입력칸에 붙여넣기(Ctrl+V)로 바로 첨부할 수 있습니다.</p>
-            </div>
-          </details>
-        </div>
-      </div>
-
-      <!-- ===== 설정 ===== -->
-      <div id="viewSettings" class="hidden">
-        <div class="panel">
-          <h2>저장 설정</h2>
-          <label class="check big">
-            <input type="checkbox" id="setConsent" />
-            <span>문진 대화 전문도 저장하기</span>
-          </label>
-          <p class="hint">
-            끄면 이후 업로드부터 대화 내용이 전송되지 않고 점수와 총평만 저장됩니다.
-            이미 저장된 전사는 그대로 남으니, 지우려면 아래에서 해당 기록을 삭제하세요.
-          </p>
-          <p class="ok hidden" id="settingsSaved">저장되었습니다</p>
-        </div>
-
-        <div class="panel danger">
-          <h2>연결 해제</h2>
-          <p class="hint">
-            발급한 연결 코드를 모두 무효화합니다. 연결된 기기의 자동 업로드가 즉시 멈추고,
-            다시 쓰려면 연결 코드를 새로 만들어 <code>/cpx:pair</code> 를 다시 실행하면 됩니다.
-          </p>
-          <p class="warn">
-            코드가 실제로 유출됐다면 이것만으로는 부족합니다. 무효화는 <b>업로드 경로만</b> 막을 뿐,
-            코드에 담긴 로그인 자격 자체는 살아있습니다. <b>비밀번호를 함께 변경</b>하세요.
-          </p>
-          <button class="btn" id="btnRevoke">모든 연결 코드 무효화</button>
-        </div>
-      </div>
-
-      <!-- ===== 관리자 ===== -->
-      <div id="viewAdmin" class="hidden">
-        <div class="panel">
-          <h2>가입 승인제</h2>
-          <label class="check big">
-            <input type="checkbox" id="setRequireApproval" />
-            <span>새 계정은 관리자 승인을 받아야 쓸 수 있음</span>
-          </label>
-          <p class="hint">
-            끄면 누구든 가입 즉시 이용할 수 있습니다. 켰을 때 이미 승인되지 않은 계정은
-            아래 목록에서 승인해야 기록을 남길 수 있습니다. 관리자 본인은 항상 예외입니다.
-          </p>
-          <p class="ok hidden" id="adminSaved">저장되었습니다</p>
-        </div>
-
-        <div class="panel">
-          <h2>계정 목록 (<span id="adminCount">0</span>명)</h2>
-          <p class="empty hidden" id="adminEmpty">가입한 계정이 없습니다.</p>
-          <div class="table-scroll">
-            <table id="adminTable" class="hidden">
-              <thead>
-                <tr>
-                  <th>닉네임</th><th>이메일</th><th>가입일</th><th>상태</th><th></th>
-                </tr>
-              </thead>
-              <tbody id="adminBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-header">
-            <h2>오류 제보 (<span id="reportCountAdmin">0</span>건)</h2>
-            <select id="reportFilter" aria-label="제보 상태로 거르기">
-              <option value="open">처리 안 함</option>
-              <option value="all">전체</option>
-              <option value="done">처리됨</option>
-            </select>
-          </div>
-          <p class="empty hidden" id="reportEmpty">해당하는 제보가 없습니다.</p>
-          <ul class="report-list admin" id="reportList"></ul>
-        </div>
-      </div>
-
-    </section>
-
-  </main>
-
-  <!-- 기록 상세 -->
-  <div id="detailBackdrop" class="backdrop hidden">
-    <div class="modal">
-      <div class="modal-head">
-        <h3 id="detailTitle">기록 상세</h3>
-        <div class="modal-actions">
-          <button class="btn small ghost" id="btnSaveMd" title="마크다운 파일로 내려받기">.md</button>
-          <button class="btn small ghost" id="btnSavePdf" title="인쇄 대화상자에서 PDF로 저장">PDF</button>
-          <button class="btn small ghost" id="btnCloseDetail">닫기</button>
-        </div>
-      </div>
-      <div class="modal-body">
-        <p class="detail-meta" id="detailMeta"></p>
-        <div class="detail-tabs">
-          <button class="dtab active" data-pane="eval">채점 결과</button>
-          <button class="dtab" data-pane="script">문진 전사</button>
-        </div>
-        <div class="detail-pane md" id="paneEval"></div>
-        <pre class="detail-pane hidden" id="paneScript"></pre>
-      </div>
-    </div>
+  <div class="card">
+    <h1>주소가 바뀌었습니다</h1>
+    <p>CPX 기록판은 아래 주소로 옮겼습니다. 잠시 뒤 자동으로 이동합니다.</p>
+    <a class="go" href="https://cpx-practice.github.io/">새 주소로 가기</a>
+    <span class="addr">https://cpx-practice.github.io</span>
+    <p style="margin:16px 0 0">즐겨찾기를 해두셨다면 새 주소로 바꿔주세요.</p>
   </div>
-
-  <script type="module" src="app.js"></script>
+  <script>
+    // meta refresh 보다 먼저, 그리고 뒤로가기 기록을 남기지 않고 넘긴다.
+    location.replace("https://cpx-practice.github.io/");
+  </script>
 </body>
 </html>
